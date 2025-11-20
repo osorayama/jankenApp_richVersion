@@ -8,8 +8,7 @@
 - 「笑ったら負け」の睨めっこ遊びをデジタルで体験できます。
 
 ## ③アプリのデプロイURL
-未デプロイ（ローカルで動作）
-
+https://osorayama.github.io/jankenApp_richVersion/
 ## ④アプリのログイン用IDまたはPassword（ある場合）
 - ログイン不要
 
