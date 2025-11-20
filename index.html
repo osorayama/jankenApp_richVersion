@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ja">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>AIにらめっこ
+        </title>
+		<!-- Tailwind  -->
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
+	</head>
+	<body class="min-h-screen flex flex-col items-center justify-start p-6 gap-4 bg-gradient-to-br from-rose-50 via-white to-sky-50">
+		<header class="text-center mt-2">
+			<h1 class="text-2xl font-bold">笑ったら負けの表情バトル</h1>
+		</header>
+
+				<main class="w-full flex flex-col items-center gap-4">
+					<!-- 左：ユーザー（動画）／右：CPU（絵文字） -->
+					<div class="w-full grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch h-[320px] md:h-[420px]">
+						<!-- ユーザー側 -->
+						<div class="grid grid-rows-[1fr_auto] h-full min-h-0">
+							<div class="relative w-full h-full rounded-lg border overflow-hidden bg-white/80 ring-1 ring-pink-100">
+								<span class="absolute top-2 left-2 px-2 py-1 rounded-full text-xs bg-pink-100 text-pink-700 border border-pink-200">YOU</span>
+								<video id="video" class="w-full h-full object-cover" autoplay muted playsinline></video>
+							</div>
+							<p id="userState" class="mt-2 text-center">スタートボタンを押して対戦開始</p>
+						</div>
+
+						<!-- CPU側 -->
+						<div class="grid grid-rows-[1fr_auto] h-full min-h-0">
+							<div class="relative rounded-lg border p-4 flex items-center justify-center overflow-hidden h-full bg-white/80 ring-1 ring-sky-100">
+								<span class="absolute top-2 right-2 px-2 py-1 rounded-full text-xs bg-sky-100 text-sky-700 border border-sky-200">CPU</span>
+								<div>
+									<div id="cpuFaceEmoji" class="text-7xl md:text-9xl text-center">😐</div>
+								</div>
+							</div>
+							<p id="cpuState" class="mt-2 text-center">😐 真顔キープ中</p>
+						</div>
+
+						<!-- VS バッジ -->
+						<div class="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white border-2 border-violet-200 shadow items-center justify-center text-violet-600 font-extrabold">VS</div>
+					</div>
+
+					<!-- 操作用ボタン -->
+					<div class="flex gap-3">
+						<button id="startBtn" class="px-4 py-2 bg-blue-500 text-white rounded">スタート</button>
+						<button id="resetBtn" class="px-4 py-2 bg-gray-500 text-white rounded">もう一度</button>
+					</div>
+					<div class="mt-2 w-full max-w-md">
+						<label id="difficultyLabel" for="difficulty" class="block text-sm mb-1">難易度: 普通</label>
+						<input id="difficulty" type="range" min="1" max="3" step="1" value="2" class="w-full" />
+						<div class="mt-1 text-xs text-gray-500">1=簡単 2=普通 3=難しい</div>
+					</div>
+
+					<!-- 結果（勝敗時のみ表示） -->
+					<p id="result" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl md:text-6xl font-extrabold italic tracking-wide uppercase opacity-0 transition-opacity duration-500 pointer-events-none rounded-2xl border-2 bg-white/90 px-6 py-3 shadow-xl">-</p>
+				</main>
+
+
+			<script type="module" src="js/main.js"></script>
+	</body>
+	</html>
+
