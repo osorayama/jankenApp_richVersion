@@ -28,6 +28,5 @@ https://osorayama.github.io/jankenApp_richVersion/
 
 
 ## ⑦フリー項目（感想、シェアしたいこと等なんでも）
-- [感想] 顔認識とUI演出を組み合わせて楽しいじゃんけん体験を目指しました！
 - [参考記事]
   - 1. [MediaPipe公式](https://developers.google.com/mediapipe)
