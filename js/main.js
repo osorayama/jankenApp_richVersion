@@ -1,4 +1,5 @@
 import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest";
+import { cpuFaces, cpuJokes } from "./cpuFaces.js";
 // - 最初の3秒で neutralOpen を平均取得し、mouthOpen > neutralOpen * しきい値 で笑った扱い
 
 $(function () { 
@@ -6,6 +7,7 @@ $(function () {
   const $userState = $("#userState");
   const $cpuState = $("#cpuState");
   const $cpuFaceEmoji = $("#cpuFaceEmoji");
+  const $cpuFaceLabel = $("#cpuFaceLabel");
   const $result = $("#result");
   const $difficulty = $("#difficulty");
   const $difficultyLabel = $("#difficultyLabel");
@@ -19,32 +21,15 @@ $(function () {
   }
 
   // 状態
-  let running = false;
-  let collectingNeutral = false;
-  let neutralSum = 0; // neutral の合計値
-  let neutralCount = 0; // neutral サンプル数
-  let neutralOpen = null; // neutral 平均
-  let userSmiled = false;
-  let cpuSmiled = false;
-  let resultDecided = false;
-  let cpuTimerId = null;
-
-  // MediaPipe
-  let faceLandmarker = null;
-  let smileFactor = 1.5; // しきい値（固定値：大きいほど笑いにくい）
+  let running, collectingNeutral, neutralSum, neutralCount, neutralOpen, userSmiled, cpuSmiled, resultDecided, cpuTimerId;
+  let faceLandmarker, smileFactor = 1.5;
 
   function applyDifficultyFromSlider() {
-    // slider value: 1=easy, 2=normal, 3=hard
-    const v = ($difficulty && $difficulty.length) ? parseInt($difficulty.val(), 10) : 2;
-    if (v === 1) {
-      smileFactor = 20;
-      $difficultyLabel && $difficultyLabel.text('難易度: 簡単');
-    } else if (v === 2) {
-      smileFactor = 10;
-      $difficultyLabel && $difficultyLabel.text('難易度: 普通');
-    } else if (v === 3) {
-      smileFactor = 1;
-      $difficultyLabel && $difficultyLabel.text('難易度: 難しい');
+    const v = Number($difficulty?.val() || 2);
+    const levels = [null, {f:20, t:'簡単'}, {f:10, t:'普通'}, {f:1, t:'難しい'}];
+    if (levels[v]) {
+      smileFactor = levels[v].f;
+      $difficultyLabel?.text(`難易度: ${levels[v].t}`);
     }
   }
 
@@ -59,31 +44,45 @@ $(function () {
     $userState.text(text);
   }
 
-  function updateCpuState(smiled) {
-    $cpuState.text(smiled ? "😂 笑った！！" : "😐 真顔キープ中");
-    if ($cpuFaceEmoji.length) {
-      $cpuFaceEmoji.text(smiled ? "😂" : "😐");
-    }
+  // CPU表情状態
+  // neutral, smile, win, lose, wink, surprise, tongue, silly, squint, cool
+  function updateCpuState(state, jokeText = null) {
+    const faces = {
+      neutral: {face: cpuFaces.neutral, label: "真顔", text: "😐 真顔キープ中"},
+      smile: {face: cpuFaces.smile, label: "笑顔", text: "😂 笑った！！"},
+      win: {face: cpuFaces.win, label: "ドヤ顔", text: "😎 YOUが笑ったのでCPUの勝ち！"},
+      lose: {face: cpuFaces.lose, label: "泣き顔", text: "😭 CPUが笑って負け…"},
+      wink: {face: cpuFaces.wink, label: "ウインク", text: "😉 ウインク！"},
+      surprise: {face: cpuFaces.surprise, label: "びっくり", text: "😯 びっくり！"},
+      tongue: {face: cpuFaces.tongue, label: "舌出し", text: "😛 べーっ！"},
+      silly: {face: cpuFaces.silly, label: "変な顔", text: "🤪 変顔！"},
+      squint: {face: cpuFaces.squint, label: "ウインク舌出し", text: "😜 ウインク＆べー！"}
+    };
+    const {face, label, text} = faces[state] || faces.neutral;
+    $("#cpuJoke").text(jokeText || "");
+    $cpuFaceEmoji.html(face).addClass('pop-anim');
+    setTimeout(() => $cpuFaceEmoji.removeClass('pop-anim'), 350);
+    $cpuFaceLabel.text(label);
+    $cpuState.text(text);
   }
 
   function setResult(text) {
     $result.text(text);
-    if (text === "-" || text === "") {
-      $result.removeClass("opacity-100 text-rose-600 border-rose-300 text-sky-600 border-sky-300").addClass("opacity-0");
-    } else {
-      $result.removeClass("opacity-0").addClass("opacity-100");
-    }
+    $result.toggleClass("opacity-0", text === "-" || text === "");
+    $result.toggleClass("opacity-100", text !== "-" && text !== "");
   }
 
   function resetUI() {
     updateUserState("スタートボタンを押して対戦開始");
-    updateCpuState(false);
+    updateCpuState("neutral");
     setResult("-");
+    $startBtn.prop('disabled', false); // スタートボタン有効化
+    $resetBtn.prop('disabled', true);  // もう一度ボタンは無効化
   }
 
   async function setupCamera() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       videoEl.srcObject = stream;
       await videoEl.play();
     } catch (e) {
@@ -133,29 +132,48 @@ $(function () {
   function finalizeResult() {
     if (resultDecided) return;
     if (userSmiled && !cpuSmiled) {
+      // ユーザーが笑って負け → CPUはドヤ顔
       resultDecided = true;
       setResult("YOU LOSE");
       $result.removeClass("text-rose-600 border-rose-300");
       $result.addClass("text-sky-600 border-sky-300");
+      updateCpuState("win");
       stopCpuTimer();
       running = false;
+      $resetBtn.prop('disabled', false); // もう一度ボタン有効化
     } else if (cpuSmiled && !userSmiled) {
+      // CPUが笑って負け → CPUは泣き顔
       resultDecided = true;
       setResult("YOU WIN");
       $result.removeClass("text-sky-600 border-sky-300");
       $result.addClass("text-rose-600 border-rose-300");
+      updateCpuState("lose");
       running = false;
+      $resetBtn.prop('disabled', false); // もう一度ボタン有効化
     }
   }
 
   function startCpuTimer() {
     stopCpuTimer();
-    const laughTime = Math.random() * 5000 + 2000;
+    // 3秒ごとに必ずランダムな顔と駄洒落を同時に表示
+    const faceKeys = ["neutral", "wink", "tongue", "silly", "squint", "surprise"];
+    function showFaceAndJoke() {
+      if (resultDecided) return;
+      const faceKey = faceKeys[Math.floor(Math.random() * faceKeys.length)];
+      const joke = cpuJokes[Math.floor(Math.random() * cpuJokes.length)];
+      updateCpuState(faceKey, joke);
+      cpuTimerId = setTimeout(showFaceAndJoke, 3000);
+    }
+    showFaceAndJoke();
+    const laughTime = Math.random() * 7000 + 6000; // 6〜13秒で笑う
     cpuTimerId = setTimeout(() => {
       if (!resultDecided) {
         cpuSmiled = true;
-        updateCpuState(true);
-        finalizeResult();
+        updateCpuState("smile");
+        // 0.8秒ほどsmileを見せてから勝敗確定
+        setTimeout(() => {
+          if (!resultDecided) finalizeResult();
+        }, 800);
       }
     }, laughTime);
   }
@@ -168,27 +186,22 @@ $(function () {
   }
 
   function stopCamera() {
-    try {
-      const stream = videoEl.srcObject;
-      if (stream) stream.getTracks().forEach((t) => t.stop());
-      videoEl.srcObject = null;
-    } catch (_) {}
+    const stream = videoEl.srcObject;
+    stream?.getTracks().forEach(t => t.stop());
+    videoEl.srcObject = null;
   }
 
   function initState() {
-    running = false;
-    collectingNeutral = false;
-    neutralSum = 0;
-    neutralCount = 0;
+    running = collectingNeutral = userSmiled = cpuSmiled = resultDecided = false;
+    neutralSum = neutralCount = 0;
     neutralOpen = null;
-    userSmiled = false;
-    cpuSmiled = false;
-    resultDecided = false;
   }
 
   async function startGame() {
     initState();
     resetUI();
+    $startBtn.prop('disabled', true); // スタートボタンを無効化
+    $resetBtn.prop('disabled', true); // もう一度ボタンも無効化
     applyDifficultyFromSlider();
     await setupCamera();
     await setupFaceLandmarker();
@@ -235,22 +248,21 @@ $(function () {
     stopCpuTimer();
     stopCamera();
     resetUI();
+    $startBtn.prop('disabled', false); // スタートボタン有効化
+    $resetBtn.prop('disabled', true);  // もう一度ボタンは無効化
   }
 
   $startBtn.on("click", () => {
-    if (running) return;
+    if (running || $startBtn.prop('disabled')) return;
     startGame().catch(() => {
       running = false;
+      $startBtn.prop('disabled', false);
     });
   });
 
-  $resetBtn.on("click", resetGame);
-  if ($difficulty && $difficulty.length) {
-    $difficulty.on('input change', applyDifficultyFromSlider);
-    // initialize label
-    applyDifficultyFromSlider();
-  }
-
-  resetUI();
+  $resetBtn.on("click", () => {
+    if ($resetBtn.prop('disabled')) return;
+    resetGame();
+  });
 });
 
