@@ -11,6 +11,7 @@ export const cpuFaces = {
   squint: "😜",   
 };
 
+// CPUの駄洒落リスト
 export const cpuJokes = [
   "布団が吹っ飛んだ！",
   "アルミ缶の上にあるミカン",

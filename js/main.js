@@ -45,7 +45,6 @@ $(function () {
   }
 
   // CPU表情状態
-  // neutral, smile, win, lose, wink, surprise, tongue, silly, squint, cool
   function updateCpuState(state, jokeText = null) {
     const faces = {
       neutral: {face: cpuFaces.neutral, label: "真顔", text: "😐 真顔キープ中"},
