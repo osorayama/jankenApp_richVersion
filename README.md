@@ -8,8 +8,7 @@
 - 「笑ったら負け」の睨めっこ遊びをデジタルで体験できます。
 
 ## ③アプリのデプロイURL
-未デプロイ（ローカルで動作）
-
+https://osorayama.github.io/jankenApp_richVersion/
 ## ④アプリのログイン用IDまたはPassword（ある場合）
 - ログイン不要
 
@@ -29,6 +28,5 @@
 
 
 ## ⑦フリー項目（感想、シェアしたいこと等なんでも）
-- [感想] 顔認識とUI演出を組み合わせて楽しいじゃんけん体験を目指しました！
 - [参考記事]
   - 1. [MediaPipe公式](https://developers.google.com/mediapipe)
